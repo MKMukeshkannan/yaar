@@ -6,6 +6,8 @@ a minimal sd-card browser built on the rp2040, featuring an oled display and a m
 
 ## DEMO
 
+https://github.com/user-attachments/assets/b6927699-ecf7-4c9a-bae1-4a8d916d4dac
+
 ---
 
 ## COMPONENTS
