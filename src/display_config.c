@@ -82,7 +82,7 @@ void build_ui()
     int y = 1;
     for (int i = g_state.f_ls_range[0]; (i < g_state.total_ls && i <= g_state.f_ls_range[1]); ++i) 
     {
-        draw_text(0, y, g_state.dir_contents[i].data, 1);
+        draw_text(0, y, g_state.display_contents[i].data, 1);
         y += 10;
     };
 

@@ -7,4 +7,5 @@
 extern spi_t spi;
 extern sd_card_t sd_card;
 
-void ls_dir();
+bool ls_dir();
+void search();

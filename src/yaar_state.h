@@ -19,11 +19,19 @@ void ys_clear(YaarString* string);
 bool ys_delete(YaarString* s, u8 pos);
 void ys_free(YaarString* s);
 void ys_from_str(YaarString* s, const char* c);
+void ys_set(YaarString* s, const char* c);
 
 
 typedef enum { NORMAL, INSERT, VISUAL } YaarMode;
+
+typedef u8 YaarErr;
+#define YAAR_OK    0
+#define YAAR_MOUNT 1
+#define YAAR_DIR_OPEN_FAILED 2
+
 typedef struct 
 {
+    YaarErr         err;
     u8              ip_box_cursor;
     bool            rerender;
     u8              threshold_meter;
@@ -37,7 +45,10 @@ typedef struct
     YaarMode        mode;
     YaarString      ip_box_buf;
     YaarString      morse_buf;
-    YaarString      dir_contents[20];
+    YaarString      dir_contents[100];
+
+    YaarString      display_contents[100];
+    YaarString      location;
 
     absolute_time_t modebt_prev_active;
     absolute_time_t playbt_prev_active;

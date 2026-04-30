@@ -49,9 +49,12 @@ bool ys_delete(YaarString* s, u8 pos)
 void ys_free(YaarString* s) 
 {
     if (s == NULL) return;
+    if (s->data == NULL) return;
+
     free(s->data);
     s->len = 0;
     s->cap = 0;
+    s->data = NULL;
 };
 
 void ys_from_str(YaarString* s, const char* c) 
@@ -62,6 +65,17 @@ void ys_from_str(YaarString* s, const char* c)
     s->len = len;
     s->cap = len + 1;
     s->data = malloc(len + 1);
+    strcpy(s->data, c);
+};
+
+void ys_set(YaarString* s, const char* c) 
+{
+    if (s == NULL || c == NULL) return;
+
+    size_t len = strlen(c);
+    if (s->cap < len) return;
+
+    s->len = len;
     strcpy(s->data, c);
 };
 

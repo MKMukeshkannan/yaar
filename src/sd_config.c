@@ -2,6 +2,7 @@
 #include "sd_card.h"
 #include "spi.h"
 #include "yaar_state.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -25,22 +26,25 @@ sd_card_t sd_card =
 };
 
 
-void ls_dir()
+bool ls_dir()
 {
     FRESULT res;
     DIR dir;
     FILINFO fno;
     int nfile, ndir;
 
-    for (int i = 0; i < 20; ++i) 
+    for (int i = 0; i < 100; ++i) 
+    {
         ys_free(&g_state.dir_contents[i]);
+        ys_free(&g_state.display_contents[i]);
+    };
 
-    res = f_opendir(&dir, "0:/");                   /* Open the directory */
-    if (res == FR_OK) {
+    res = f_opendir(&dir, g_state.location.data);
+    if (res == FR_OK) 
+    {
         nfile = ndir = 0;
 
-
-        for (int i = 0; i < 20; ++i) 
+        for (int i = 0; i < 100; ++i) 
         {
             res = f_readdir(&dir, &fno);
             if (fno.fname[0] == 0) break;
@@ -49,30 +53,78 @@ void ls_dir()
                 snprintf(tmp, sizeof(tmp), "%s/", fno.fname);
 
                 ys_from_str(&g_state.dir_contents[i], tmp);
+                ys_from_str(&g_state.display_contents[i], tmp);
                 ndir++;
             } else {
                 ys_from_str(&g_state.dir_contents[i], fno.fname);
+                ys_from_str(&g_state.display_contents[i], fno.fname);
                 nfile++;
             };
         }
 
         f_closedir(&dir);
         g_state.total_ls = ndir + nfile;
-        // printf("%d dirs, %d files.\n", ndir, nfile);
     } else {
-        // printf("Failed to open \"%s\". (%u)\n", path, res);
+        return YAAR_DIR_OPEN_FAILED;
     }
+
+    return YAAR_OK;
+};
+
+
+static bool is_contains(YaarString haystack, YaarString needle)
+{
+    if (needle.len == 0) return true; // empty needle matches
+    if (needle.len > haystack.len) return false;
+
+    // printf("searching: %s in %s\n", haystack.data, needle.data);
+
+    for (u8 i = 0; i <= haystack.len - needle.len; i++)
+    {
+        u8 j = 0;
+
+        while (j < needle.len &&
+               tolower((unsigned char)haystack.data[i + j]) ==
+               tolower((unsigned char)needle.data[j]))
+        {
+            j++;
+        }
+
+        if (j == needle.len)
+        {
+            // printf("FOUND: %s in %s\n", haystack.data, needle.data);
+            return true; // match found
+        }
+    }
+
+    return false;
+}
+
+void search() 
+{
+    if (g_state.ip_box_buf.len == 0) 
+    {
+        printf("ehere\n");
+        for (u8 i = 0; i < 100; ++i) 
+            ys_from_str(&g_state.display_contents[i], g_state.dir_contents[i].data);
+        return;
+    };
+
+
+    u8 res_ind = 0;
+    for (u8 i = 0; i < 20; ++i) 
+    {
+        if (is_contains(g_state.dir_contents[i], g_state.ip_box_buf)) 
+            g_state.display_contents[res_ind++] = g_state.dir_contents[i];
+    };
 
     for (int i = 0; i < 5; ++i) 
     {
-        YaarString* y = &g_state.dir_contents[i];
-        printf("len: %i, cap: %i dat: %s\n", y->len, y->cap, y->data);
+        // printf("%s\n", g_state.display_contents[i].data);
     };
 
     return;
 };
-
-
 
 size_t sd_get_num() { return 1; }
 sd_card_t *sd_get_by_num(size_t num) {

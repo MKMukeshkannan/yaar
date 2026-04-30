@@ -1,14 +1,15 @@
 #include "display_config.h"
+#include "ff.h"
 #include "rtc.h"
 #include "sd_config.h"
 #include "yaar_state.h"
 #include <pico/stdio.h>
 #include <pico/time.h>
 #include <pico/types.h>
-#include <stdio.h>
 
 char m_buf[5] = {' ',' ',' ',' ',' ',};// {{{
 char ip_buf[20] = {' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',};
+char location[100] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', };
 YaarState g_state = (YaarState) 
 {
     .file_cursor = 0,
@@ -22,6 +23,8 @@ YaarState g_state = (YaarState)
     .ip_box_buf = (YaarString) { .len=0, .cap=20, .data=ip_buf},
     .morse_buf = (YaarString) {.len=0, .cap=5, .data=m_buf},
     .dir_contents = {'0'},
+    .display_contents = {'0'},
+    .location =  (YaarString) {.len=0, .cap=100, .data=location},
 
     .modebt_prev_active = 0,
     .playbt_prev_active = 0,
@@ -103,13 +106,6 @@ u8       display_buf[BUF_LEN] =
 
 static inline unsigned long long clamp(unsigned long long x, unsigned long long min, unsigned long long max);
 
-void print_u8(u8 c) 
-{
-    for (int i = 0; i < 8; ++i)
-        printf("%i", (c >> i ) & 1);
-    printf("\n");
-};
-
 int main() 
 {
     /// {{{
@@ -134,9 +130,16 @@ int main()
     gpio_put(PICO_DEFAULT_LED_PIN, 1);
     // }}}
 
-    FRESULT fr = f_mount(&sd_card.fatfs, sd_card.pcName, 1);
     init_display();
-    ls_dir();
+
+    FRESULT fr = f_mount(&sd_card.fatfs, sd_card.pcName, 1);
+    if (fr != FR_OK)
+        g_state.err = YAAR_MOUNT;
+
+
+    ys_set(&g_state.location, "0:/");
+    if (ls_dir()) 
+        g_state.err = YAAR_DIR_OPEN_FAILED;
 
     // APPLICATION LOOOP
     g_state.rerender  = true;
@@ -145,7 +148,6 @@ int main()
     {
         current_time = get_absolute_time();
         fill_state_input(current_time);
-        // print_u8(g_state.btn_state);
 
         if (GET_MODE(g_state.btn_state) == 0b10) 
         {
@@ -190,7 +192,10 @@ int main()
 
                              if (GET_PLAY(g_state.btn_state) == 0b10) // RELEASED
                              {
+                                 search();
+                                 g_state.rerender = true;
                              };
+
                              break; 
                          }
             case INSERT: 
